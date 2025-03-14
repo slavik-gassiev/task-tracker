@@ -3,19 +3,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>cam.slava.learn</groupId>
+        <artifactId>task-tracker</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
 
-    <groupId>cam.slava.learn</groupId>
-    <artifactId>task-tracker</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <packaging>pom</packaging>
-    <modules>
-        <module>task-tracker-frontend</module>
-        <module>task-tracker-backend</module>
-        <module>task-tracker-scheduler</module>
-        <module>task-tracker-email-sender</module>
-        <module>Postgres</module>
-        <module>Kafka</module>
-    </modules>
+    <artifactId>Postgres</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
