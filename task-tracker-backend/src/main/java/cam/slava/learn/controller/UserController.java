@@ -5,6 +5,8 @@ import cam.slava.learn.dto.LogonDto;
 import cam.slava.learn.provider.JwtTokenProvider;
 import cam.slava.learn.service.UserService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +35,11 @@ public class UserController {
             return ResponseEntity.badRequest().body(errors);
         }
 
-        return ResponseEntity.ok("logon");
+        String token = jwtTokenProvider.createToken(logonDto.getUserEmail(), logonDto.getPassword());
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .body("Logon successful");
     }
 
     @PostMapping("/login")
@@ -45,6 +51,10 @@ public class UserController {
             return ResponseEntity.badRequest().body(errors);
         }
 
-        return ResponseEntity.ok("login");
+        String token = jwtTokenProvider.createToken(loginDto.getUserEmail(), loginDto.getPassword());
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .body("Login successful");
     }
 }
