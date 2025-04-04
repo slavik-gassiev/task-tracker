@@ -2,6 +2,7 @@ package cam.slava.learn.service;
 
 import cam.slava.learn.entity.UserEntity;
 import cam.slava.learn.repository.UserRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -36,5 +37,10 @@ public class UserService {
 
     public Optional<Long> findUser(String userEmail) {
         return userRepository.findByUserName(userEmail).map(UserEntity::getId);
+    }
+
+    public Optional<Long> getCurrentUserId() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return findUser(email);
     }
 }
