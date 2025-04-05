@@ -43,8 +43,7 @@ public class UserController {
         }
 
         Long userId = userService.createUser(logonDto.getUserEmail(), logonDto.getPassword())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.INTERNAL_SERVER_ERROR,
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                         "Failed to create user"
                 ));
 

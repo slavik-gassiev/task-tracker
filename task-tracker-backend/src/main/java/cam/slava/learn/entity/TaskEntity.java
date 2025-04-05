@@ -25,6 +25,9 @@ public class TaskEntity {
     @Column(nullable = false)
     private String description;
 
+    @Column(nullable = false)
+    private Boolean done = false;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
