@@ -16,7 +16,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/tasks")
@@ -68,20 +67,47 @@ public class TaskController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
         }
 
+        Long createdTaskId = taskService.createTask(taskCreateDto)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR, "Task not created"
+                ));
 
-        return null;
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdTaskId);
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<TaskCreateDto> patchTaskById(@PathVariable("id") Long id,
-                                                        @RequestBody @Valid TaskPatchDto task,
-                                                        BindingResult bindingResult) {
+    public ResponseEntity<Object> patchTaskById(@PathVariable("id") Long id,
+                                                @Valid @RequestBody TaskPatchDto task,
+                                                BindingResult bindingResult) {
 
-        return null;
+        if (bindingResult.hasErrors()) {
+            Map<String, String> errors = new HashMap<>();
+            bindingResult.getFieldErrors().forEach(
+                    fieldError -> errors.put(fieldError.getField(), fieldError.getDefaultMessage())
+            );
+
+            return ResponseEntity.badRequest().body(errors);
+        }
+
+        taskValidation.validateTaskAccess(id);
+
+        Long patchedTaskId = taskService.patchTask(task)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR, "Task not patched"
+                ));
+
+        return ResponseEntity.status(HttpStatus.OK).body(patchedTaskId);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Object> deleteTaskById(@PathVariable("id") @Valid Long id) {
-        return null;
+    public ResponseEntity<Object> deleteTaskById(@PathVariable("id") Long id) {
+        taskValidation.validateTaskAccess(id);
+
+        Long taskId = taskService.deleteTaskById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Task not found"
+                ));
+
+        return ResponseEntity.status(HttpStatus.OK).body(taskId);
     }
 }
