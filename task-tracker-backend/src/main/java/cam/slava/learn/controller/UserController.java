@@ -5,6 +5,7 @@ import cam.slava.learn.dto.LoginDto;
 import cam.slava.learn.dto.LogonDto;
 import cam.slava.learn.provider.JwtTokenProvider;
 import cam.slava.learn.service.UserService;
+import cam.slava.learn.validation.ValidationError;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -23,19 +24,18 @@ public class UserController {
 
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final ValidationError validationError;
 
-    public UserController(UserService userService, JwtTokenProvider jwtTokenProvider) {
+    public UserController(UserService userService, JwtTokenProvider jwtTokenProvider, ValidationError validationError) {
         this.userService = userService;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.validationError = validationError;
     }
 
     @PostMapping("/logon")
     public ResponseEntity<Object> logon( @Valid @RequestBody LogonDto logonDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            Map<String, String> errors = new HashMap<>();
-            bindingResult.getFieldErrors().forEach( fieldError ->
-                    errors.put(fieldError.getField(), fieldError.getDefaultMessage()));
-            return ResponseEntity.badRequest().body(errors);
+            return validationError.mapValidationErrors(bindingResult);
         }
 
         if (userService.isUserExist(logonDto.getUserEmail())) {
@@ -59,10 +59,7 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<Object> login( @Valid @RequestBody LoginDto loginDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            Map<String, String> errors = new HashMap<>();
-            bindingResult.getFieldErrors().forEach( fieldError ->
-                    errors.put(fieldError.getField(), fieldError.getDefaultMessage()));
-            return ResponseEntity.badRequest().body(errors);
+            return validationError.mapValidationErrors(bindingResult);
         }
 
         if (!userService.isUserExist(loginDto.getUserEmail())) {

@@ -2,10 +2,12 @@ package cam.slava.learn.controller;
 
 import cam.slava.learn.dto.TaskDto;
 import cam.slava.learn.dto.TaskCreateDto;
+import cam.slava.learn.dto.TaskListResponseDto;
 import cam.slava.learn.dto.TaskPatchDto;
 import cam.slava.learn.service.TaskService;
 import cam.slava.learn.service.UserService;
 import cam.slava.learn.validation.TaskValidation;
+import cam.slava.learn.validation.ValidationError;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,11 +26,13 @@ public class TaskController {
     private final TaskService taskService;
     private final TaskValidation taskValidation;
     private final UserService userService;
+    private final ValidationError validationError;
 
-    public TaskController(TaskService taskService, TaskValidation taskValidation, UserService userService) {
+    public TaskController(TaskService taskService, TaskValidation taskValidation, UserService userService, ValidationError validationError) {
         this.taskService = taskService;
         this.taskValidation = taskValidation;
         this.userService = userService;
+        this.validationError = validationError;
     }
 
     @GetMapping("/{id}")
@@ -42,7 +46,7 @@ public class TaskController {
     }
 
     @GetMapping()
-    public ResponseEntity<List<TaskDto>> getAllTasks() {
+    public ResponseEntity<TaskListResponseDto> getAllTasks() {
 
         Long currentUserId = userService.getCurrentUserId()
                 .orElseThrow(() -> new ResponseStatusException(
@@ -50,21 +54,17 @@ public class TaskController {
                 ));
 
         List<TaskDto>  tasksDto = taskService.getAllTaskDtoByUserID(currentUserId);
+        TaskListResponseDto taskListResponseDto = new TaskListResponseDto(tasksDto);
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(tasksDto);
+                .body(taskListResponseDto);
     }
 
     @PostMapping("/create")
     public ResponseEntity<Object> createTask(@RequestBody @Valid TaskCreateDto taskCreateDto,
                                              BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            Map<String, String> errors = new HashMap<>();
-            bindingResult.getFieldErrors().forEach(fieldError ->
-                errors.put(fieldError.getField(), fieldError.getDefaultMessage())
-            );
-
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+            validationError.mapValidationErrors(bindingResult);
         }
 
         Long createdTaskId = taskService.createTask(taskCreateDto)
@@ -72,7 +72,11 @@ public class TaskController {
                         HttpStatus.INTERNAL_SERVER_ERROR, "Task not created"
                 ));
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdTaskId);
+        Map<String, String> response = new HashMap<>();
+        response.put("id", String.valueOf(createdTaskId));
+        response.put("message", "Task was successfully created");
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PatchMapping("/{id}")
@@ -81,12 +85,7 @@ public class TaskController {
                                                 BindingResult bindingResult) {
 
         if (bindingResult.hasErrors()) {
-            Map<String, String> errors = new HashMap<>();
-            bindingResult.getFieldErrors().forEach(
-                    fieldError -> errors.put(fieldError.getField(), fieldError.getDefaultMessage())
-            );
-
-            return ResponseEntity.badRequest().body(errors);
+            validationError.mapValidationErrors(bindingResult);
         }
 
         taskValidation.validateTaskAccess(id);
@@ -96,7 +95,11 @@ public class TaskController {
                         HttpStatus.INTERNAL_SERVER_ERROR, "Task not patched"
                 ));
 
-        return ResponseEntity.status(HttpStatus.OK).body(patchedTaskId);
+        Map<String, String> response = new HashMap<>();
+        response.put("id", String.valueOf(id));
+        response.put("message", "Task patched successfully");
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @DeleteMapping("/{id}")
@@ -107,7 +110,10 @@ public class TaskController {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Task not found"
                 ));
+        Map<String, String> response = new HashMap<>();
+        response.put("id", String.valueOf(id));
+        response.put("message", "Task deleted successfully");
 
-        return ResponseEntity.status(HttpStatus.OK).body(taskId);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }
