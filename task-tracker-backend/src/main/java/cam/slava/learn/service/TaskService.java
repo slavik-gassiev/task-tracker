@@ -70,7 +70,7 @@ public class TaskService {
     public Optional<Long> patchTask(TaskPatchDto taskPatchDto) {
         Long userId = userService.getCurrentUserId()
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.FORBIDDEN, "User not authenticated"
+                        HttpStatus.UNAUTHORIZED, "User not authenticated"
                 ));
 
         TaskEntity taskEntity = taskRepository.findById(taskPatchDto.getId())
