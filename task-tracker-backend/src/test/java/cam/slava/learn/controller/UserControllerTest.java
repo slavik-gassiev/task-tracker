@@ -1,113 +1,127 @@
 package cam.slava.learn.controller;
 
-import cam.slava.learn.dto.AuthResponseDto;
-import cam.slava.learn.dto.LoginDto;
-import cam.slava.learn.dto.LogonDto;
+import cam.slava.learn.config.TestConfig;
 import cam.slava.learn.provider.JwtTokenProvider;
 import cam.slava.learn.service.UserService;
-import cam.slava.learn.validation.ValidationError;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.util.Optional;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@Import(UserControllerTest.TestConfig.class)
+@WebMvcTest(UserController.class)
+@AutoConfigureMockMvc(addFilters = false)
+@Import(TestConfig.class)
 class UserControllerTest {
 
-    private final MockMvc mockMvc;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-    // Внедрим моки через тестовую конфигурацию
-    private final UserService userService;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final ValidationError validationError;
-
-    public UserControllerTest(WebApplicationContext context,
-                              UserService userService,
-                              JwtTokenProvider jwtTokenProvider,
-                              ValidationError validationError) {
-        // Настроим MockMvc через контекст приложения, который подгрузит наш контроллер UserController
-        this.mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
-        this.userService = userService;
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.validationError = validationError;
-    }
-
-    @AfterEach
-    void tearDown() {
-        // При необходимости можно сбросить состояние между тестами
-    }
-
-    @TestConfiguration
-    static class TestConfig {
-        @Bean
-        public UserService userService() {
-            return Mockito.mock(UserService.class);
-        }
-
-        @Bean
-        public JwtTokenProvider jwtTokenProvider() {
-            return Mockito.mock(JwtTokenProvider.class);
-        }
-
-        @Bean
-        public ValidationError validationError() {
-            // Для простоты можно сделать, чтобы метод mapValidationErrors возвращал сразу фиктивный ResponseEntity
-            ValidationError ve = Mockito.mock(ValidationError.class);
-            Mockito.when(ve.mapValidationErrors(Mockito.any())).thenReturn(
-                    ResponseEntity.badRequest().body("Validation errors")
-            );
-            return ve;
-        }
-    }
+    @Autowired
+    private MockMvc mvc;
+    @Autowired
+    private UserService userService;
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+    @Autowired
+    private MockMvc mockMvc;
 
     @Test
-    void logonShouldReturnConflictWhenUserAlreadyExists() throws Exception {
-        // Подготовка DTO для логона
-        LogonDto dto = new LogonDto("test@test.com", "password123");
-        // Эмулируем, что пользователь уже существует
-        Mockito.when(userService.isUserExist(eq(dto.getUserEmail()))).thenReturn(true);
+    void shouldReturnOk_WhenUserIsLoggedIn() throws Exception {
+        String json = """
+                {
+                "userEmail": "test@test.com",
+                "password": "test123"
+                }
+                """;
 
-        mockMvc.perform(post("/auth/logon")
+        Mockito.when(userService.isUserExist("test@test.com")).thenReturn(false);
+        Mockito.when(userService.createUser("test@test.com", "test123")).thenReturn(Optional.of(1L));
+        Mockito.when(jwtTokenProvider.createToken("test@test.com", "test123")).thenReturn("mapped-token");
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/auth/logon")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isConflict())
-                .andExpect(status().reason(containsString("User already exists")));
-    }
-
-    @Test
-    void loginShouldReturnSuccessIfUserExists() throws Exception {
-        // Подготовка DTO для логина
-        LoginDto dto = new LoginDto("test@test.com", "password123");
-        // Эмулируем, что пользователь существует
-        Mockito.when(userService.isUserExist(eq(dto.getUserEmail()))).thenReturn(true);
-        Mockito.when(userService.findUser(eq(dto.getUserEmail()))).thenReturn(Optional.of(1L));
-        // Эмулируем создание токена
-        String token = "fake-jwt-token";
-        Mockito.when(jwtTokenProvider.createToken(eq(dto.getUserEmail()), eq(dto.getPassword()))).thenReturn(token);
-
-        mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+                        .content(json))
                 .andExpect(status().isOk())
-                .andExpect(header().string(HttpHeaders.AUTHORIZATION, "Bearer " + token))
-                .andExpect(content().string(containsString("Login successful")));
+                .andExpect(header().string(HttpHeaders.AUTHORIZATION, "Bearer mapped-token"));
     }
+
+    @Test
+    void shouldReturnConflict_WhenUserAlreadyExists() throws Exception {
+        String json = """
+                {
+                "userEmail": "test@test.com",
+                "password": "test123"
+                }
+                """;
+
+        Mockito.when(userService.isUserExist("test@test.com")).thenReturn(true);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/auth/logon")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+                .andExpect(status().isConflict());
+
+        Mockito.verify(jwtTokenProvider, Mockito.never()).createToken("test@test.com", "test123");
+    }
+
+    @Test
+    void shouldReturnOk_WhenUserLoginSuccess() throws Exception {
+        String json = """
+                {
+                "userEmail": "test@test.com",
+                "password": "test123"
+                }
+                """;
+
+        Mockito.when(userService.isUserExist("test@test.com")).thenReturn(true);
+        Mockito.when(userService.findUser("test@test.com")).thenReturn(Optional.of(1L));
+        Mockito.when(jwtTokenProvider.createToken("test@test.com", "test123")).thenReturn("mapped-token");
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.AUTHORIZATION, "Bearer mapped-token"));
+    }
+
+    @Test
+    void shouldReturnConflict_WhenUserNotFound() throws Exception {
+        String json = """
+                {
+                "userEmail": "test@test.com",
+                "password": "test123"
+                }
+                """;
+
+        Mockito.when(userService.isUserExist("test@test.com")).thenReturn(false);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+                .andExpect(status().isConflict());
+
+        Mockito.verify(jwtTokenProvider, Mockito.never()).createToken("test@test.com", "test123");
+    }
+
+//    @Test
+//    void shouldReturnConflict_WhenPasswordIsIncorrect() throws Exception {
+//        String json = """
+//                {
+//                "userEmail": "test@test.com",
+//                "password": "test123"
+//                }
+//                """;
+//
+//        Mockito.when(userService.isUserExist("test@test.com")).thenReturn(true);
+//        Mockito.when(userService.findUser("test@test.com")).thenReturn(Optional.of(1L));
+//        Mockito.when
+//    }
 }
