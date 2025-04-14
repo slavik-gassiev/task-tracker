@@ -7,13 +7,14 @@ import cam.slava.learn.repository.UserRepository;
 import cam.slava.learn.service.TaskService;
 import cam.slava.learn.service.UserService;
 import cam.slava.learn.validation.TaskValidation;
+import cam.slava.learn.validation.UserValidation;
 import cam.slava.learn.validation.ValidationError;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-@TestConfiguration
+@TestConfiguration(proxyBeanMethods = false)
 public class TestConfig {
 
     @Bean
@@ -57,8 +58,12 @@ public class TestConfig {
     }
 
     @Bean
-    public TaskValidation taskValidation() {
-        return Mockito.mock(TaskValidation.class);
+    public TaskValidation taskValidation(UserService userService, TaskRepository taskRepository) {
+        return new TaskValidation(userService, taskRepository);
     }
 
+    @Bean
+    public UserValidation userValidation(UserService userService) {
+        return new UserValidation(userService);
+    }
 }

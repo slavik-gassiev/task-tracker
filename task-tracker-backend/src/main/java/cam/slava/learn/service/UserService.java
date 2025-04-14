@@ -5,6 +5,7 @@ import cam.slava.learn.repository.UserRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
@@ -42,5 +43,13 @@ public class UserService {
     public Optional<Long> getCurrentUserId() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return findUser(email);
+    }
+
+    public Optional<Long> checkPassword(String password, String userEmail) {
+        Optional<UserEntity> userEntity = userRepository.findByUserName(userEmail);
+        if (userEntity.isPresent() && passwordEncoder.matches(password, userEntity.get().getPassword())) {
+            return Optional.of(userEntity.get().getId());
+        }
+        return Optional.empty();
     }
 }

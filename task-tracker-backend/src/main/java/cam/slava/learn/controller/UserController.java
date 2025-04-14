@@ -5,6 +5,7 @@ import cam.slava.learn.dto.LoginDto;
 import cam.slava.learn.dto.LogonDto;
 import cam.slava.learn.provider.JwtTokenProvider;
 import cam.slava.learn.service.UserService;
+import cam.slava.learn.validation.UserValidation;
 import cam.slava.learn.validation.ValidationError;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
@@ -25,11 +26,13 @@ public class UserController {
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
     private final ValidationError validationError;
+    private final UserValidation userValidation;
 
-    public UserController(UserService userService, JwtTokenProvider jwtTokenProvider, ValidationError validationError) {
+    public UserController(UserService userService, JwtTokenProvider jwtTokenProvider, ValidationError validationError, UserValidation userValidation) {
         this.userService = userService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.validationError = validationError;
+        this.userValidation = userValidation;
     }
 
     @PostMapping("/logon")
@@ -62,14 +65,7 @@ public class UserController {
             return validationError.mapValidationErrors(bindingResult);
         }
 
-        if (!userService.isUserExist(loginDto.getUserEmail())) {
-            throw  new ResponseStatusException(HttpStatus.CONFLICT, "User does not exist");
-        }
-
-        Long userId = userService.findUser(loginDto.getUserEmail())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.INTERNAL_SERVER_ERROR, "Failed to find user"
-                ));
+        Long userId = userValidation.validateLogin(loginDto);
 
         String token = jwtTokenProvider.createToken(loginDto.getUserEmail(), loginDto.getPassword());
         AuthResponseDto authResponseDto = new AuthResponseDto(userId.toString(), token, "Login successful");
