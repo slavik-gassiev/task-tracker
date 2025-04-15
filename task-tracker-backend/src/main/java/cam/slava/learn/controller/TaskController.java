@@ -48,10 +48,7 @@ public class TaskController {
     @GetMapping()
     public ResponseEntity<TaskListResponseDto> getAllTasks() {
 
-        Long currentUserId = userService.getCurrentUserId()
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.FORBIDDEN, "User not logged in"
-                ));
+        Long currentUserId = taskValidation.validateUserAuthorization();
 
         List<TaskDto>  tasksDto = taskService.getAllTaskDtoByUserID(currentUserId);
         TaskListResponseDto taskListResponseDto = new TaskListResponseDto(tasksDto);

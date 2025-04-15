@@ -10,12 +10,18 @@ import cam.slava.learn.validation.TaskValidation;
 import cam.slava.learn.validation.UserValidation;
 import cam.slava.learn.validation.ValidationError;
 import org.mockito.Mockito;
+import org.modelmapper.ModelMapper;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @TestConfiguration(proxyBeanMethods = false)
 public class TestConfig {
+
+    @Bean
+    public ModelMapper modelMapper() {
+        return Mockito.mock(ModelMapper.class);
+    }
 
     @Bean
     public JwtTokenProvider jwtTokenProvider() {

@@ -23,8 +23,7 @@ public class TaskValidation {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid task id");
         }
 
-        Long currentUserId = userService.getCurrentUserId()
-                .orElseThrow( () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated"));
+        Long currentUserId = validateUserAuthorization();
 
         TaskEntity taskEntity = taskRepository.findById(taskId)
                 .orElseThrow( () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
@@ -32,5 +31,10 @@ public class TaskValidation {
         if (!taskEntity.getUserEntity().getId().equals(currentUserId)) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Task access denied");
         }
+    }
+
+    public Long validateUserAuthorization() {
+        return userService.getCurrentUserId()
+                .orElseThrow( () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated"));
     }
 }
