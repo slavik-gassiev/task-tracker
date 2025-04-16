@@ -1,8 +1,10 @@
 package cam.slava.learn.controller;
 
 import cam.slava.learn.config.TestConfig;
+import cam.slava.learn.dto.TaskCreateDto;
 import cam.slava.learn.dto.TaskDto;
 import cam.slava.learn.dto.TaskListResponseDto;
+import cam.slava.learn.dto.TaskPatchDto;
 import cam.slava.learn.entity.TaskEntity;
 import cam.slava.learn.entity.UserEntity;
 import cam.slava.learn.repository.TaskRepository;
@@ -178,22 +180,52 @@ class TaskControllerTest {
     @Test
     void shouldCreateTask_AndReturnOk_AndCreatedTaskId() throws Exception {
 
+        String json = """
+                            {
+                                "title": "test_title",
+                                "description": "test_desc",
+                                "done": true
+                            }
+                            """;
+
+        Long taskId = 11L;
+
+        Mockito.when(taskService.createTask(Mockito.any(TaskCreateDto.class))).thenReturn(Optional.of(11L));
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/tasks/create")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value("11"))
+                .andExpect(jsonPath("$.message").value("Task was successfully created"));
     }
 
 
     @Test
-    void getAllTasks() {
-    }
+    void shouldPatchTask_AndReturnOk() throws Exception {
 
-    @Test
-    void createTask() {
-    }
+        String json = """
+                            {
+                                "title": "test_title",
+                                "description": "test_desc",
+                                "done": true
+                            }
+                            """;
+        Long taskId = 11L;
+        UserEntity userEntity = new UserEntity();
+        userEntity.setId(1L);
+        TaskEntity taskEntity = new TaskEntity();
+        taskEntity.setId(taskId);
+        taskEntity.setUserEntity(userEntity);
 
-    @Test
-    void patchTaskById() {
-    }
+        Mockito.when(taskService.patchTask(Mockito.any(TaskPatchDto.class))).thenReturn(Optional.of(11L));
+        Mockito.when(userService.getCurrentUserId()).thenReturn(Optional.of(1L));
+        Mockito.when(taskRepository.findById(taskId)).thenReturn(Optional.of(taskEntity));
 
-    @Test
-    void deleteTaskById() {
+        mockMvc.perform(MockMvcRequestBuilders.patch("/tasks/" + taskId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+                .andExpect(jsonPath("$.id").value("11"))
+                .andExpect(jsonPath("$.message").value("Task patched successfully"));
     }
 }
