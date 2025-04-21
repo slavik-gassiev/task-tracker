@@ -9,9 +9,9 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>cam.slava.learn</groupId>
-    <artifactId>task-tracker</artifactId>
+    <artifactId>task-tracker-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>task-tracker</name>
+    <name>task-tracker-backend</name>
     <description>Demo project for Spring Boot</description>
     <url/>
     <licenses>
