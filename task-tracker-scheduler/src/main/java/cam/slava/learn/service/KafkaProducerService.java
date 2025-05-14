@@ -8,13 +8,13 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class KafkaService {
+public class KafkaProducerService {
     private final KafkaTemplate<String, MessageDto> kafkaTemplate;
 
     @Value(value = "${spring.kafka.topic}")
     private String topic;
 
-    public KafkaService(KafkaTemplate<String, MessageDto> kafkaTemplate) {
+    public KafkaProducerService(KafkaTemplate<String, MessageDto> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
     }
 
